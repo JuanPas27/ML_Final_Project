@@ -69,24 +69,11 @@
         }
     </script>
 
-    <py-config>
-        packages = ["matplotlib", "numpy"]
-        
-        [[fetch]]
-        from = "./models"
-        to = "models"
-        files = ["metrics_base.json", "confusion_LDA.json", "confusion_LOG.json", "confusion_MLP.json", "confusion_MM.json", "confusion_DT.json"]
-
-        [[fetch]]
-        from = "./models_boost"
-        to = "models_boost"
-        files = ["metrics_boost.json", "confusion_LDA_boost.json", "confusion_LOG_boost.json", "confusion_MLP_boost.json", "confusion_MM_boost.json", "confusion_DT_boost.json"]
-    </py-config>
-
-    <script type="py">
+    <script type="py" config='{"packages":["matplotlib", "numpy"]}'>
         import json
         import numpy as np
         import matplotlib.pyplot as plt
+        from pyodide.http import open_url
         from pyodide.ffi import create_proxy
         from js import document
         from pyscript import display
@@ -94,10 +81,8 @@
         # 1. Function to plot Metrics (Precision, Recall, F1)
         def plot_metrics():
             try:
-                with open("models/metrics_base.json", "r") as f:
-                    base_data = json.load(f)
-                with open("models_boost/metrics_boost.json", "r") as f:
-                    boost_data = json.load(f)
+                base_data = json.loads(open_url("./models/metrics_base.json").read())
+                boost_data = json.loads(open_url("./models_boost/metrics_boost.json").read())
                 
                 # Model names
                 models = ["LDA", "Logistic", "MLP", "MM", "DecisionTree"]
@@ -162,13 +147,11 @@
             try:
                 data = {"base": None, "boost": None}
                 try:
-                    with open(f"models/confusion_{model_id}.json", "r") as f:
-                        data["base"] = json.load(f)
+                    data["base"] = json.loads(open_url(f"./models/confusion_{model_id}.json").read())
                 except: pass
                 
                 try:
-                    with open(f"models_boost/confusion_{model_id}_boost.json", "r") as f:
-                        data["boost"] = json.load(f)
+                    data["boost"] = json.loads(open_url(f"./models_boost/confusion_{model_id}_boost.json").read())
                 except: pass
 
                 document.getElementById("cm-plot").innerHTML = ""
@@ -193,7 +176,7 @@
                 display(fig, target="cm-plot")
                 plt.close(fig)
             except Exception as e:
-                document.getElementById("cm-plot").innerHTML = f"<p>Error: No data found for {model_id}.</p>"
+                document.getElementById("cm-plot").innerHTML = f"<p>Error: No data found for {model_id}. Details: {str(e)}</p>"
 
         # 3. Function to plot F1 by Genre
         def plot_f1_per_genre(event):
@@ -203,13 +186,11 @@
             try:
                 data = {"base": None, "boost": None}
                 try:
-                    with open(f"models/confusion_{model_id}.json", "r") as f:
-                        data["base"] = json.load(f)
+                    data["base"] = json.loads(open_url(f"./models/confusion_{model_id}.json").read())
                 except: pass
                 
                 try:
-                    with open(f"models_boost/confusion_{model_id}_boost.json", "r") as f:
-                        data["boost"] = json.load(f)
+                    data["boost"] = json.loads(open_url(f"./models_boost/confusion_{model_id}_boost.json").read())
                 except: pass
                 
                 def calc_f1_from_cm(cm_list):
