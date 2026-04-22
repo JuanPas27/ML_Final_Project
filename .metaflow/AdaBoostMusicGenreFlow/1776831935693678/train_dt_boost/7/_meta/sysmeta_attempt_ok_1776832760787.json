@@ -1,0 +1,1 @@
+{"flow_id": "AdaBoostMusicGenreFlow", "run_number": "1776831935693678", "step_name": "train_dt_boost", "task_id": "7", "field_name": "attempt_ok", "type": "internal_attempt_status", "value": "False", "tags": ["attempt_id:0"], "user_name": "Juan", "ts_epoch": 1776832760787}

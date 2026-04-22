@@ -1,0 +1,1 @@
+{"flow_id": "AdaBoostMusicGenreFlow", "run_number": "1776831935693678", "step_name": "train_mm", "task_id": "6", "field_name": "script-name", "type": "script-name", "value": "gtzan_pipeline_boost.py", "tags": ["attempt_id:0"], "user_name": "Juan", "ts_epoch": 1776831940448}

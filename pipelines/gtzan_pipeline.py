@@ -31,7 +31,7 @@ class MusicGenreFlow(FlowSpec):
     def start(self):
         """Load Data from GTZAN dataset CSV"""
         data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                  'data', 'features_3_sec.csv')
+                                 'data', 'features_3_sec.csv')
         self.raw_data = pd.read_csv(data_path)
         print(f"Data: {self.raw_data.shape}")
         os.makedirs("models", exist_ok=True)

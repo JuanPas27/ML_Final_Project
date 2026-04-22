@@ -1,0 +1,1 @@
+{"run_number": "1776833560881234", "step_name": "train_mlp", "flow_id": "AdaBoostMusicGenreFlow", "user_name": "Juan", "tags": [], "system_tags": ["metaflow_version:2.19.22", "runtime:dev", "user:Juan", "python_version:3.14.3"], "ts_epoch": 1776833564427}
