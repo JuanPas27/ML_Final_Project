@@ -9,6 +9,7 @@ import jax.numpy as jnp
 import jax.nn as jnn
 import pickle
 import mlflow
+mlflow.set_tracking_uri("file:./mlruns") # Help with paralelism of models
 from metaflow import FlowSpec, step, Parameter
 
 # Import classes
@@ -231,7 +232,7 @@ class MusicGenreFlow(FlowSpec):
             mlflow.log_artifact(model_path)
 
             self.mm_metrics = {'precision': precision, 'recall': recall, 'f1': f1}
-            print(f"GMM -> F1: {f1:.4f}")
+            print(f"MM -> F1: {f1:.4f}")
 
         self.next(self.join)
 
@@ -295,7 +296,7 @@ class MusicGenreFlow(FlowSpec):
         print("="*50)
 
         best_f1 = max(all_metrics.items(), key=lambda x: x[1]['f1'])
-        print(f"Best model: {best_f1[0]} with F1 = {best_f1[1]:.4f}")
+        print(f"Best model: {best_f1[0]} with F1 = {best_f1[1]['f1']:.4f}")
 
         self.next(self.end)
 

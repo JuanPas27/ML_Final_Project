@@ -1,0 +1,14 @@
+artifact_uri: file:///home/Juan/ML_Final_Project/mlruns/0/4c92f5a7ce734c0db90803d19470e435/artifacts
+end_time: 1776827956302
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4c92f5a7ce734c0db90803d19470e435
+run_name: Logistic_GTZAN
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776827898295
+status: 3
+tags: []
+user_id: Juan

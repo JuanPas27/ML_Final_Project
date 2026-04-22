@@ -1,0 +1,14 @@
+artifact_uri: file:///home/Juan/ML_Final_Project/mlruns/0/cb0140daec8e423ba9fe7708ca4386ea/artifacts
+end_time: 1776827603610
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: cb0140daec8e423ba9fe7708ca4386ea
+run_name: DecisionTree_GTZAN
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776827377222
+status: 3
+tags: []
+user_id: Juan

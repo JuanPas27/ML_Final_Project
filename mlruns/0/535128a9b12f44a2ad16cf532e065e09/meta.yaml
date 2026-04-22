@@ -1,0 +1,14 @@
+artifact_uri: file:///home/Juan/ML_Final_Project/mlruns/0/535128a9b12f44a2ad16cf532e065e09/artifacts
+end_time: 1776827905348
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 535128a9b12f44a2ad16cf532e065e09
+run_name: LDA_GTZAN
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776827898228
+status: 3
+tags: []
+user_id: Juan
