@@ -16,15 +16,11 @@ import json
 from LDA import LDA
 from Logistic_Regression import LogisticRegression
 from MLP import MLP
+from MLPAdapter import MLPAdapter
 from MM import MixtureModels
 from DecisionTree import DecisionTree
 from AdaBoost import AdaBoost
 from metrics import precision_recall_f1, confusion_matrix
-
-class MLPAdapter(MLP):
-    def fit(self, X, y):
-        y_onehot = jnp.eye(self.output_size)[y]
-        return self.train_matrix(X, y_onehot, epochs=100, verbose=False)
 
 class AdaBoostMusicGenreFlow(FlowSpec):
     # Params
