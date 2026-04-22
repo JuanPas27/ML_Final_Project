@@ -1,0 +1,14 @@
+artifact_uri: file:///home/Juan/ML_Final_Project/mlruns/0/9357873eb932448d9436e914063dada9/artifacts
+end_time: 1776827964805
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 9357873eb932448d9436e914063dada9
+run_name: GMM_GTZAN
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776827898361
+status: 3
+tags: []
+user_id: Juan

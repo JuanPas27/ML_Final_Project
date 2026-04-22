@@ -1,0 +1,14 @@
+artifact_uri: file:///home/Juan/ML_Final_Project/mlruns/0/4ffb2b31fa1e47a48cef81690030b6e1/artifacts
+end_time: 1776834009220
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4ffb2b31fa1e47a48cef81690030b6e1
+run_name: AdaBoost_MM
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776833565693
+status: 3
+tags: []
+user_id: Juan

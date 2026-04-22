@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAX Models Results</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2023.11.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2023.11.1/core.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .tab-content { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+        .tabs { margin-bottom: 20px; }
+        button.tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #ddd; border-radius: 5px; font-size: 16px; margin-right: 10px; }
+        button.tab-btn.active { background: #007bff; color: white; }
+        select, button.action-btn { padding: 8px; font-size: 16px; margin-bottom: 15px; }
+        #cm-plot { display: flex; justify-content: center; gap: 20px; overflow-x: auto; }
+        #metrics-plot { overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <h1>Comparison: Base Models vs AdaBoost</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('tab-metrics', this)">Performance Metrics</button>
+        <button class="tab-btn" onclick="showTab('tab-cm', this)">Confusion Matrices</button>
+        <button class="tab-btn" onclick="showTab('tab-genre', this)">F1 by Genre</button>
+    </div>
+
+    <div id="tab-metrics" class="tab-content active">
+        <h2>Metrics Comparison</h2>
+        <div id="metrics-plot">Loading chart...</div>
+    </div>
+
+    <div id="tab-cm" class="tab-content">
+        <h2>Confusion Matrices Breakdown</h2>
+        <select id="modelSelect">
+            <option value="LDA">Linear Discriminant Analysis (LDA)</option>
+            <option value="LOG">Logistic Regression</option>
+            <option value="MLP">Multilayer Perceptron (MLP)</option>
+            <option value="MM">Mixture Models (GMM)</option>
+            <option value="DT">Decision Tree</option>
+        </select>
+        <button id="btnLoadCM" class="action-btn">Plot Matrices</button>
+        
+        <div id="cm-plot">Select a model to view the comparison.</div>
+    </div>
+
+    <div id="tab-genre" class="tab-content">
+        <h2>F1-Score by Musical Genre</h2>
+        <select id="genreModelSelect">
+            <option value="LDA">LDA</option>
+            <option value="LOG">Logistic Regression</option>
+            <option value="MLP">MLP</option>
+            <option value="MM">GMM</option>
+            <option value="DT">Decision Tree</option>
+        </select>
+        <button id="btnLoadGenre" class="action-btn">Plot by Genre</button>
+        <div id="genre-plot" style="display: flex; justify-content: center;">Select a model.</div>
+    </div>
+
+    <script>
+        function showTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            element.classList.add('active');
+        }
+    </script>
+
+    <script type="py" config='{"packages":["matplotlib", "numpy"]}'>
+        import json
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from pyodide.http import open_url
+        from pyodide.ffi import create_proxy
+        from js import document
+        from pyscript import display
+
+        # 1. Function to plot Metrics (Precision, Recall, F1)
+        def plot_metrics():
+            try:
+                # Read data from FastAPI
+                url = "/api/metrics"
+                data = json.loads(open_url(url).read())
+                
+                base_data = data["base"]
+                boost_data = data["boost"]
+                
+                # Model names
+                models = ["LDA", "Logistic", "MLP", "MM", "DecisionTree"]
+                boost_keys = ["LDA + AdaBoost", "Logistic + AdaBoost", "MLP + AdaBoost", "MM + AdaBoost", "DT + AdaBoost"]
+                
+                # Extract all metrics
+                base_prec = [base_data[m]["precision"] for m in models]
+                boost_prec = [boost_data[bk]["precision"] for bk in boost_keys]
+                
+                base_rec = [base_data[m]["recall"] for m in models]
+                boost_rec = [boost_data[bk]["recall"] for bk in boost_keys]
+                
+                base_f1 = [base_data[m]["f1"] for m in models]
+                boost_f1 = [boost_data[bk]["f1"] for bk in boost_keys]
+                
+                x = np.arange(len(models))
+                width = 0.35
+                
+                # Create a figure with 1 row and 3 columns
+                fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+                
+                # Plot 1: Precision
+                ax1.bar(x - width/2, base_prec, width, label='Base Model', color='#1f77b4')
+                ax1.bar(x + width/2, boost_prec, width, label='AdaBoost', color='#ff7f0e')
+                ax1.set_title('Precision Comparison')
+                ax1.set_xticks(x)
+                ax1.set_xticklabels(models, rotation=45)
+                ax1.set_ylim(0, 1.05)
+                ax1.grid(axis='y', linestyle='--', alpha=0.7)
+                
+                # Plot 2: Recall
+                ax2.bar(x - width/2, base_rec, width, label='Base Model', color='#1f77b4')
+                ax2.bar(x + width/2, boost_rec, width, label='AdaBoost', color='#ff7f0e')
+                ax2.set_title('Recall Comparison')
+                ax2.set_xticks(x)
+                ax2.set_xticklabels(models, rotation=45)
+                ax2.set_ylim(0, 1.05)
+                ax2.grid(axis='y', linestyle='--', alpha=0.7)
+                
+                # Plot 3: F1-Score
+                ax3.bar(x - width/2, base_f1, width, label='Base Model', color='#1f77b4')
+                ax3.bar(x + width/2, boost_f1, width, label='AdaBoost', color='#ff7f0e')
+                ax3.set_title('F1-Score Comparison')
+                ax3.set_xticks(x)
+                ax3.set_xticklabels(models, rotation=45)
+                ax3.set_ylim(0, 1.05)
+                ax3.grid(axis='y', linestyle='--', alpha=0.7)
+                ax3.legend(loc='lower right')
+                plt.tight_layout()
+                
+                # Clear and display
+                document.getElementById("metrics-plot").innerHTML = ""
+                display(fig, target="metrics-plot")
+                plt.close(fig)
+            except Exception as e:
+                document.getElementById("metrics-plot").innerHTML = f"Error loading metrics: {str(e)}"
+
+        # 2. Function to plot Confusion Matrices
+        def plot_confusion(event):
+            model_id = document.getElementById("modelSelect").value
+            
+            try:
+                url = f"/api/confusion/{model_id}"
+                data = json.loads(open_url(url).read())
+                document.getElementById("cm-plot").innerHTML = ""
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+                
+                # Plot Base
+                if data["base"]:
+                    im1 = ax1.imshow(data["base"], cmap='Blues')
+                    ax1.set_title(f"{model_id} - Base")
+                    ax1.set_xlabel('Predicted')
+                    ax1.set_ylabel('True')
+                    fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+                    
+                # Plot Boosted
+                if data["boost"]:
+                    im2 = ax2.imshow(data["boost"], cmap='Reds')
+                    ax2.set_title(f"{model_id} - AdaBoost")
+                    ax2.set_xlabel('Predicted')
+                    ax2.set_ylabel('True')
+                    fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
+                plt.tight_layout()
+                display(fig, target="cm-plot")
+                plt.close(fig)
+            except Exception as e:
+                document.getElementById("cm-plot").innerHTML = f"<p>Error: No data found for {model_id}.</p>"
+
+        # 3. Function to plot F1 by Genre
+        def plot_f1_per_genre(event):
+            model_id = document.getElementById("genreModelSelect").value
+            genres = ['blues', 'classical', 'country', 'disco', 'hiphop', 
+                      'jazz', 'metal', 'pop', 'reggae', 'rock']
+            try:
+                url = f"/api/confusion/{model_id}"
+                data = json.loads(open_url(url).read())
+                
+                def calc_f1_from_cm(cm_list):
+                    cm = np.array(cm_list)
+                    tp = np.diag(cm)
+                    fp = np.sum(cm, axis=0) - tp
+                    fn = np.sum(cm, axis=1) - tp
+                    precision = np.divide(tp, tp + fp, out=np.zeros_like(tp, dtype=float), where=(tp+fp)!=0)
+                    recall = np.divide(tp, tp + fn, out=np.zeros_like(tp, dtype=float), where=(tp+fn)!=0)
+                    f1 = np.divide(2 * precision * recall, precision + recall, out=np.zeros_like(precision), where=(precision+recall)!=0)
+                    return f1
+
+                f1_base = calc_f1_from_cm(data["base"]) if data["base"] else np.zeros(10)
+                f1_boost = calc_f1_from_cm(data["boost"]) if data["boost"] else np.zeros(10)
+                
+                fig, ax = plt.subplots(figsize=(12, 6))
+                x = np.arange(len(genres))
+                width = 0.35
+                
+                ax.bar(x - width/2, f1_base, width, label=f'{model_id} Base', color='#2ca02c')
+                ax.bar(x + width/2, f1_boost, width, label=f'{model_id} + AdaBoost', color='#d62728')
+                ax.set_ylabel('F1 Score')
+                ax.set_title(f'Performance by Musical Genre ({model_id})')
+                ax.set_xticks(x)
+                ax.set_xticklabels(genres, rotation=45)
+                ax.legend()
+                ax.grid(axis='y', linestyle='--', alpha=0.7)
+                ax.set_ylim(0, 1.05)
+                
+                plt.tight_layout()
+                document.getElementById("genre-plot").innerHTML = ""
+                display(fig, target="genre-plot")
+                plt.close(fig)
+            except Exception as e:
+                document.getElementById("genre-plot").innerHTML = f"<p>Error: {str(e)}</p>"
+
+        # Connect the button for Genre Plot
+        btn_genre_proxy = create_proxy(plot_f1_per_genre)
+        document.getElementById("btnLoadGenre").addEventListener("click", btn_genre_proxy)
+
+        # Initialization on page load
+        plot_metrics()
+        
+        # Connect the Python button to HTML for Confusion Matrices
+        btn_proxy = create_proxy(plot_confusion)
+        document.getElementById("btnLoadCM").addEventListener("click", btn_proxy)
+    </script>
+</body>
+</html>

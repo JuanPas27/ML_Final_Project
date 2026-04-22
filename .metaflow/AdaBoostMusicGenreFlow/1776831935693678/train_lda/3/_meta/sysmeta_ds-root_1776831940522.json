@@ -1,0 +1,1 @@
+{"flow_id": "AdaBoostMusicGenreFlow", "run_number": "1776831935693678", "step_name": "train_lda", "task_id": "3", "field_name": "ds-root", "type": "ds-root", "value": "/home/Juan/ML_Final_Project/.metaflow", "tags": ["attempt_id:0"], "user_name": "Juan", "ts_epoch": 1776831940522}
