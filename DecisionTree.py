@@ -1,4 +1,3 @@
-# DecisionTree.py
 import jax.numpy as jnp
 from collections import namedtuple
 
