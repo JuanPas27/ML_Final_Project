@@ -10,6 +10,7 @@ import pickle
 import mlflow
 mlflow.set_tracking_uri("file:./mlruns")
 from metaflow import FlowSpec, step, Parameter
+import json
 
 # Import classes
 from LDA import LDA
@@ -18,7 +19,7 @@ from MLP import MLP
 from MM import MixtureModels
 from DecisionTree import DecisionTree
 from AdaBoost import AdaBoost
-from metrics import precision_recall_f1
+from metrics import precision_recall_f1, confusion_matrix
 
 class MLPAdapter(MLP):
     def fit(self, X, y):
@@ -50,6 +51,9 @@ class AdaBoostMusicGenreFlow(FlowSpec):
         genre_to_id = {g: i for i, g in enumerate(genres)}
         self.raw_data['label_id'] = self.raw_data['label'].map(genre_to_id)
         self.genre_names = genres
+
+        with open("models_boost/genre_names.pkl", "wb") as f:
+            pickle.dump(self.genre_names, f)
 
         # Features and target
         X = self.raw_data.drop(['filename', 'length', 'label', 'label_id'], axis=1)
@@ -110,6 +114,12 @@ class AdaBoostMusicGenreFlow(FlowSpec):
             model.fit(self.X_train, self.y_train)
             y_pred = model.predict(self.X_test)
 
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_path = f"models_boost/confusion_LDA_boost.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm.tolist(), f)
+            mlflow.log_artifact(cm_path)
+
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
             recall = float(jnp.mean(jnp.array(recalls)))
@@ -135,6 +145,12 @@ class AdaBoostMusicGenreFlow(FlowSpec):
             model = AdaBoost(base_estimator=base, n_estimators=self.n_estimators, learning_rate=self.learning_rate)
             model.fit(self.X_train_aug, self.y_train)
             y_pred = model.predict(self.X_test_aug)
+
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_path = f"models_boost/confusion_LOG_boost.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm.tolist(), f)
+            mlflow.log_artifact(cm_path)
 
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
@@ -163,6 +179,12 @@ class AdaBoostMusicGenreFlow(FlowSpec):
             model.fit(self.X_train, self.y_train)
             y_pred = model.predict(self.X_test)
 
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_path = f"models_boost/confusion_MLP_boost.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm.tolist(), f)
+            mlflow.log_artifact(cm_path)
+
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
             recall = float(jnp.mean(jnp.array(recalls)))
@@ -188,6 +210,12 @@ class AdaBoostMusicGenreFlow(FlowSpec):
             model.fit(self.X_train, self.y_train)
             y_pred = model.predict(self.X_test)
 
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_path = f"models_boost/confusion_MM_boost.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm.tolist(), f)
+            mlflow.log_artifact(cm_path)
+
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
             recall = float(jnp.mean(jnp.array(recalls)))
@@ -212,6 +240,12 @@ class AdaBoostMusicGenreFlow(FlowSpec):
             model = AdaBoost(base_estimator=base, n_estimators=self.n_estimators, learning_rate=self.learning_rate)
             model.fit(self.X_train, self.y_train)
             y_pred = model.predict(self.X_test)
+
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_path = f"models_boost/confusion_DT_boost.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm.tolist(), f)
+            mlflow.log_artifact(cm_path)
 
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
@@ -250,6 +284,11 @@ class AdaBoostMusicGenreFlow(FlowSpec):
 
         best = max(metrics.items(), key=lambda x: x[1]['f1'])
         print(f"Best boosted model: {best[0]} with F1 = {best[1]['f1']:.4f}")
+
+        metrics_path = "models_boost/metrics_boost.json"
+        with open(metrics_path, "w") as f:
+            json.dump(metrics, f, indent=4)
+        print(f"Boosted metrics saved to {metrics_path}")
 
         self.next(self.end)
 

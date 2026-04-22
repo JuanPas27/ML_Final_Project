@@ -11,6 +11,7 @@ import pickle
 import mlflow
 mlflow.set_tracking_uri("file:./mlruns") # Help with paralelism of models
 from metaflow import FlowSpec, step, Parameter
+import json
 
 # Import classes
 from LDA import LDA
@@ -18,7 +19,7 @@ from Logistic_Regression import LogisticRegression
 from MLP import MLP
 from MM import MixtureModels
 from DecisionTree import DecisionTree
-from metrics import precision_recall_f1
+from metrics import precision_recall_f1, confusion_matrix
 
 class MusicGenreFlow(FlowSpec):
     # Params
@@ -45,6 +46,9 @@ class MusicGenreFlow(FlowSpec):
         genre_to_id = {g: i for i, g in enumerate(genres)}
         self.raw_data['label_id'] = self.raw_data['label'].map(genre_to_id)
         self.genre_names = genres
+        
+        with open("models/genre_names.pkl", "wb") as f:
+            pickle.dump(self.genre_names, f)
 
         # Features and target
         X = self.raw_data.drop(['filename', 'length', 'label', 'label_id'], axis=1)
@@ -107,6 +111,13 @@ class MusicGenreFlow(FlowSpec):
             model.fit(self.X_train_scaled, self.y_train)
             y_pred = model.predict(self.X_test_scaled)
 
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_list = cm.tolist()
+            cm_path = f"models/confusion_LDA.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm_list, f)
+            mlflow.log_artifact(cm_path)
+
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
             recall = float(jnp.mean(jnp.array(recalls)))
@@ -140,6 +151,13 @@ class MusicGenreFlow(FlowSpec):
             model = LogisticRegression(max_iter=self.max_iter, tol=self.tol)
             model.fit(self.X_train_aug, self.y_train)
             y_pred = model.predict(self.X_test_aug)
+
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_list = cm.tolist()
+            cm_path = f"models/confusion_LOG.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm_list, f)
+            mlflow.log_artifact(cm_path)
 
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
@@ -181,8 +199,15 @@ class MusicGenreFlow(FlowSpec):
             model.train_matrix(self.X_train_scaled, self.y_train_onehot,
                             x_val=self.X_test_scaled, y_val=self.y_test_onehot,
                             epochs=epochs, verbose=True)
-
             y_pred = model.predict(self.X_test_scaled)
+
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_list = cm.tolist()
+            cm_path = f"models/confusion_MLP.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm_list, f)
+            mlflow.log_artifact(cm_path)
+
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
             recall = float(jnp.mean(jnp.array(recalls)))
@@ -216,6 +241,13 @@ class MusicGenreFlow(FlowSpec):
             model.fit(self.X_train_scaled, self.y_train)
             y_pred = model.predict(self.X_test_scaled)
 
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_list = cm.tolist()
+            cm_path = f"models/confusion_MM.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm_list, f)
+            mlflow.log_artifact(cm_path)
+
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
             recall = float(jnp.mean(jnp.array(recalls)))
@@ -248,6 +280,13 @@ class MusicGenreFlow(FlowSpec):
             model = DecisionTree(max_depth=10, min_samples_split=5)
             model.fit(self.X_train_scaled, self.y_train)
             y_pred = model.predict(self.X_test_scaled)
+
+            cm = confusion_matrix(self.y_test, y_pred, num_classes=len(self.genre_names))
+            cm_list = cm.tolist()
+            cm_path = f"models/confusion_DT.json"
+            with open(cm_path, "w") as f:
+                json.dump(cm_list, f)
+            mlflow.log_artifact(cm_path)
 
             precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
             precision = float(jnp.mean(jnp.array(precisions)))
@@ -297,6 +336,11 @@ class MusicGenreFlow(FlowSpec):
 
         best_f1 = max(all_metrics.items(), key=lambda x: x[1]['f1'])
         print(f"Best model: {best_f1[0]} with F1 = {best_f1[1]['f1']:.4f}")
+
+        metrics_path = "models/metrics_base.json"
+        with open(metrics_path, "w") as f:
+            json.dump(all_metrics, f, indent=4)
+        print(f"Base metrics saved to {metrics_path}")
 
         self.next(self.end)
 
