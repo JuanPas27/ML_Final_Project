@@ -15,6 +15,8 @@ from metaflow import FlowSpec, step, Parameter
 from LDA import LDA
 from Logistic_Regression import LogisticRegression
 from MLP import MLP
+from MM import MixtureModels
+from DecisionTree import DecisionTree
 from metrics import precision_recall_f1
 
 class MusicGenreFlow(FlowSpec):
@@ -27,7 +29,7 @@ class MusicGenreFlow(FlowSpec):
     @step
     def start(self):
         """Load Data from GTZAN dataset CSV"""
-        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                                   'data', 'features_3_sec.csv')
         self.raw_data = pd.read_csv(data_path)
         print(f"Data: {self.raw_data.shape}")
@@ -89,7 +91,8 @@ class MusicGenreFlow(FlowSpec):
         self.X_test_aug = jnp.concatenate([ones_test, X_test_scaled], axis=1)
 
         print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
-        self.next(self.train_lda, self.train_logistic, self.train_mlp)
+        self.next(self.train_lda, self.train_logistic, self.train_mlp,
+                  self.train_mm, self.train_decision_tree)
 
     @step
     def train_lda(self):
@@ -200,23 +203,98 @@ class MusicGenreFlow(FlowSpec):
         self.next(self.join)
 
     @step
+    def train_mm(self):
+        """Train Mixture Models"""
+        with mlflow.start_run(run_name="GMM_GTZAN"):
+            mlflow.log_param("test_size", self.test_size)
+            mlflow.log_param("random_seed", self.random_seed)
+            mlflow.log_param("model_type", "GMM")
+            mlflow.log_param("n_components", 3)
+
+            model = MixtureModels(n_components_per_class=3, max_iter=50)
+            model.fit(self.X_train_scaled, self.y_train)
+            y_pred = model.predict(self.X_test_scaled)
+
+            precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
+            precision = float(jnp.mean(jnp.array(precisions)))
+            recall = float(jnp.mean(jnp.array(recalls)))
+            f1 = float(jnp.mean(jnp.array(f1s)))
+
+            mlflow.log_metric("precision", precision)
+            mlflow.log_metric("recall", recall)
+            mlflow.log_metric("f1", f1)
+
+            # Save artifact model
+            model_path = "models/mm_model.pkl"
+            with open(model_path, "wb") as f:
+                pickle.dump(model, f)
+            mlflow.log_artifact(model_path)
+
+            self.mm_metrics = {'precision': precision, 'recall': recall, 'f1': f1}
+            print(f"GMM -> F1: {f1:.4f}")
+
+        self.next(self.join)
+
+    @step
+    def train_decision_tree(self):
+        """Train Decision Tree"""
+        with mlflow.start_run(run_name="DecisionTree_GTZAN"):
+            mlflow.log_param("test_size", self.test_size)
+            mlflow.log_param("random_seed", self.random_seed)
+            mlflow.log_param("model_type", "DecisionTree")
+            mlflow.log_param("max_depth", 10)
+
+            model = DecisionTree(max_depth=10, min_samples_split=5)
+            model.fit(self.X_train_scaled, self.y_train)
+            y_pred = model.predict(self.X_test_scaled)
+
+            precisions, recalls, f1s = precision_recall_f1(self.y_test, y_pred)
+            precision = float(jnp.mean(jnp.array(precisions)))
+            recall = float(jnp.mean(jnp.array(recalls)))
+            f1 = float(jnp.mean(jnp.array(f1s)))
+
+            mlflow.log_metric("precision", precision)
+            mlflow.log_metric("recall", recall)
+            mlflow.log_metric("f1", f1)
+
+            # Save artifact model
+            model_path = "models/decision_tree_model.pkl"
+            with open(model_path, "wb") as f:
+                pickle.dump(model, f)
+            mlflow.log_artifact(model_path)
+
+            self.dt_metrics = {'precision': precision, 'recall': recall, 'f1': f1}
+            print(f"Decision Tree -> F1: {f1:.4f}")
+
+        self.next(self.join)
+
+    @step
     def join(self, inputs):
         """Comparing results"""
         lda = inputs.train_lda.lda_metrics
         log = inputs.train_logistic.logistic_metrics
         mlp = inputs.train_mlp.mlp_metrics
+        mm = inputs.train_mm.mm_metrics
+        dt = inputs.train_decision_tree.dt_metrics
+
+        all_metrics = {
+            'LDA': lda,
+            'Logistic': log,
+            'MLP': mlp,
+            'MM': mm,
+            'DecisionTree': dt
+        }
 
         print("\n" + "="*50)
         print("Comparing models")
         print("="*50)
         print(f"{'Model':<20} {'Precision':<12} {'Recall':<12} {'F1':<12}")
         print("-"*50)
-        print(f"{'LDA':<20} {lda['precision']:<12.4f} {lda['recall']:<12.4f} {lda['f1']:<12.4f}")
-        print(f"{'Logistic':<20} {log['precision']:<12.4f} {log['recall']:<12.4f} {log['f1']:<12.4f}")
-        print(f"{'MLP':<20} {mlp['precision']:<12.4f} {mlp['recall']:<12.4f} {mlp['f1']:<12.4f}")
+        for name, m in all_metrics.items():
+            print(f"{name:<20} {m['precision']:<12.4f} {m['recall']:<12.4f} {m['f1']:<12.4f}")
         print("="*50)
 
-        best_f1 = max([('LDA', lda['f1']), ('Logistic', log['f1']), ('MLP', mlp['f1'])], key=lambda x: x[1])
+        best_f1 = max(all_metrics.items(), key=lambda x: x[1]['f1'])
         print(f"Best model: {best_f1[0]} with F1 = {best_f1[1]:.4f}")
 
         self.next(self.end)
